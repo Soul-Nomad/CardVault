@@ -4,6 +4,7 @@ import { collection, doc, getDocs, getDoc, setDoc, updateDoc, deleteDoc, query, 
 export interface Store {
   id: string;
   name: string;
+  link?: string;
   createdAt: number;
 }
 
@@ -57,6 +58,7 @@ export const storeService = {
            return {
                id: storeSnap.id,
                name: storeSnap.data().name,
+               link: storeSnap.data().link,
                createdAt: storeSnap.data().createdAt?.toMillis() || Date.now()
            }
        }
@@ -65,6 +67,17 @@ export const storeService = {
        console.error(e);
        return null;
      }
+  },
+
+  updateStore: async (storeId: string, data: Partial<Omit<Store, 'id' | 'createdAt'>>): Promise<void> => {
+    if (!auth.currentUser) throw new Error('Not logged in');
+    try {
+      const storeRef = doc(db, 'users', auth.currentUser.uid, 'stores', storeId);
+      await updateDoc(storeRef, data);
+    } catch(e) {
+      console.error(e);
+      throw e;
+    }
   },
 
   createStore: async (name: string): Promise<string> => {
@@ -217,6 +230,33 @@ export const storeService = {
     } catch(e) {
       console.error(e);
       return [];
+    }
+  },
+
+  deleteHistoryEvent: async (eventId: string): Promise<void> => {
+    if (!auth.currentUser) throw new Error('Not logged in');
+    try {
+      const eventRef = doc(db, 'users', auth.currentUser.uid, 'history', eventId);
+      await deleteDoc(eventRef);
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
+  clearHistory: async (): Promise<void> => {
+    if (!auth.currentUser) throw new Error('Not logged in');
+    try {
+      const historyRef = collection(db, 'users', auth.currentUser.uid, 'history');
+      const querySnap = await getDocs(historyRef);
+      const batch = writeBatch(db);
+      querySnap.docs.forEach((d) => {
+        batch.delete(d.ref);
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
   }
 }

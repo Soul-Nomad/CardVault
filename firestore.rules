@@ -40,16 +40,20 @@ service cloud.firestore {
     }
     
     function isValidStore(data) {
+      let hasLink = data.keys().hasAll(['link']);
+      let validSize = 2 + (hasLink ? 1 : 0);
       return data.keys().hasAll(['name', 'createdAt'])
-          && data.keys().size() == 2
+          && data.keys().size() == validSize
           && data.name is string
           && data.name.size() <= 100
-          && data.createdAt == request.time;
+          && data.createdAt == request.time
+          && (hasLink ? (data.link is string && data.link.size() <= 500) : true);
     }
     
     function isValidStoreUpdate(data) {
       return data.keys().size() > 0 
           && (data.keys().hasAny(['name']) ? (data.name is string && data.name.size() <= 100) : true)
+          && (data.keys().hasAny(['link']) ? (data.link is string && data.link.size() <= 500) : true)
           && (data.keys().hasAny(['createdAt']) ? (data.createdAt == existing().createdAt) : true);
     }
 
@@ -108,7 +112,7 @@ service cloud.firestore {
         allow get: if isSignedIn() && isOwner(userId);
         allow list: if isSignedIn() && isOwner(userId);
         allow create: if isSignedIn() && isValidId(storeId) && isOwner(userId) && isValidStore(incoming());
-        allow update: if isSignedIn() && isOwner(userId) && isValidStoreUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name']);
+        allow update: if isSignedIn() && isOwner(userId) && isValidStoreUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'link']);
         allow delete: if isSignedIn() && isOwner(userId);
 
         match /giftcards/{giftcardId} {

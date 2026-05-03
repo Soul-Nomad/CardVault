@@ -1,7 +1,7 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { storeService, Store, Giftcard } from '../services/storeService';
-import { ShoppingCart, Copy, Trash2, Check, Filter, Plus } from 'lucide-react';
+import { ShoppingCart, Copy, Trash2, Check, Filter, Plus, ExternalLink, X } from 'lucide-react';
 import { format } from 'date-fns';
 import clsx from 'clsx';
 
@@ -17,6 +17,26 @@ export default function StoreDetail() {
   const [useType, setUseType] = useState<'full' | 'partial'>('full');
   const [useAmount, setUseAmount] = useState('');
   const [isUsing, setIsUsing] = useState(false);
+
+  // Edit Link Modal State
+  const [editLinkOpen, setEditLinkOpen] = useState(false);
+  const [storeLinkInput, setStoreLinkInput] = useState('');
+  const [isSavingLink, setIsSavingLink] = useState(false);
+  const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startPress = () => {
+    pressTimerRef.current = setTimeout(() => {
+        setStoreLinkInput(store?.link || '');
+        setEditLinkOpen(true);
+    }, 500); // 500ms hold
+  };
+
+  const cancelPress = () => {
+    if (pressTimerRef.current) {
+        clearTimeout(pressTimerRef.current);
+        pressTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -37,6 +57,21 @@ export default function StoreDetail() {
     }
     load();
   }, [storeId]);
+
+  const handleSaveLink = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!storeId || !store) return;
+    try {
+        setIsSavingLink(true);
+        await storeService.updateStore(storeId, { link: storeLinkInput });
+        setStore({ ...store, link: storeLinkInput });
+        setEditLinkOpen(false);
+    } catch(err) {
+        console.error("Failed to save link", err);
+    } finally {
+        setIsSavingLink(false);
+    }
+  };
 
   const handleMarkUsed = (card: Giftcard) => {
      setCardToUse(card);
@@ -113,7 +148,35 @@ export default function StoreDetail() {
                <ShoppingCart className="w-10 h-10 text-blue-400" />
             </div>
             <div>
-              <h1 className="font-display text-4xl font-bold text-white mb-2">{store.name}</h1>
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                 <h1 className="font-display text-4xl font-bold text-white max-w-full break-all">{store.name}</h1>
+                 {store.link ? (
+                    <div className="relative group/link flex items-center">
+                       <a href={store.link} target="_blank" rel="noopener noreferrer" 
+                          onPointerDown={startPress}
+                          onPointerUp={cancelPress}
+                          onPointerLeave={cancelPress}
+                          onContextMenu={(e) => {
+                             // allow default context menu on links, long press will open our modal
+                             // if user holds, our modal will overlay 
+                          }}
+                          className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-blue-400 transition-colors select-none">
+                          <ExternalLink size={20} />
+                       </a>
+                       <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible md:group-hover/link:opacity-100 md:group-hover/link:visible transition-all z-50">
+                           <button onClick={() => { setStoreLinkInput(store.link || ''); setEditLinkOpen(true); }} className="bg-black/90 border border-white/10 px-3 py-1.5 rounded-lg text-xs text-white shadow-xl flex items-center gap-2 whitespace-nowrap hover:bg-black transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z"/></svg>
+                              Edit Link
+                           </button>
+                       </div>
+                    </div>
+                 ) : (
+                    <button onClick={() => { setStoreLinkInput(''); setEditLinkOpen(true); }} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors text-sm font-medium">
+                       <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z"/></svg>
+                       <span>Add Link</span>
+                    </button>
+                 )}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="font-body-sm text-gray-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span> {cards.filter(c => !c.used).length} Active Cards</span>
               </div>
@@ -304,6 +367,33 @@ export default function StoreDetail() {
             </div>
          </div>
       )}
+
+      {/* Edit Link Modal */}
+      {editLinkOpen && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm shadow-2xl">
+            <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 w-full max-w-[420px] shadow-2xl relative">
+               <h3 className="text-xl font-bold text-white mb-2">Edit Store Link</h3>
+               <p className="text-sm text-gray-400 mb-6">Add a link to the store's website or app to access it quickly.</p>
+               
+               <form onSubmit={handleSaveLink} className="flex flex-col gap-1">
+                  <div className="mb-4">
+                     <label className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold block mb-2">Store URL</label>
+                     <div className="relative flex items-center">
+                        <input type="url" value={storeLinkInput} onChange={e => setStoreLinkInput(e.target.value)} placeholder="https://" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 focus:ring-0 focus:border-blue-500 text-white shadow-inner transition-colors" />
+                     </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-white/5">
+                     <button type="button" onClick={() => setEditLinkOpen(false)} className="px-5 py-2.5 font-semibold text-white border border-white/10 rounded-xl hover:bg-white/5 transition-colors text-sm">Cancel</button>
+                     <button type="submit" disabled={isSavingLink} className="px-5 py-2.5 font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm disabled:opacity-50">
+                        {isSavingLink ? "Saving..." : "Save Link"}
+                     </button>
+                  </div>
+               </form>
+            </div>
+         </div>
+      )}
     </div>
   )
 }
+

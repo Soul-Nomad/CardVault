@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { storeService, Store, Giftcard } from '../services/storeService';
-import { ShoppingCart, Gamepad2, Computer, Monitor, ArrowRight, Wallet } from 'lucide-react';
+import { ShoppingCart, Gamepad2, Computer, Monitor, ArrowRight, Wallet, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, isAfter, isBefore, addDays } from 'date-fns';
 
 interface StoreSummary extends Store {
   totalAvailable: number;
@@ -10,15 +10,28 @@ interface StoreSummary extends Store {
   activeCardsCount: number;
 }
 
+interface ExpiringCard {
+  storeName: string;
+  storeId: string;
+  cardCode: string;
+  value: number;
+  currency: string;
+  expirationDate: number;
+}
+
 export default function Dashboard() {
   const [summaries, setSummaries] = useState<StoreSummary[]>([]);
+  const [expiringCards, setExpiringCards] = useState<ExpiringCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       const stores = await storeService.getStores();
-      
       const summariesData: StoreSummary[] = [];
+      const expiring: ExpiringCard[] = [];
+      
+      const now = Date.now();
+      const thirtyDaysFromNow = addDays(new Date(), 30).getTime();
       
       for (const store of stores) {
         const cards = await storeService.getCards(store.id);
@@ -32,6 +45,16 @@ export default function Dashboard() {
               if (closestExp === null || c.expirationDate < closestExp) {
                   closestExp = c.expirationDate;
               }
+              if (isAfter(new Date(c.expirationDate), new Date(now)) && isBefore(new Date(c.expirationDate), new Date(thirtyDaysFromNow))) {
+                  expiring.push({
+                      storeName: store.name,
+                      storeId: store.id,
+                      cardCode: c.code,
+                      value: c.value,
+                      currency: c.currency,
+                      expirationDate: c.expirationDate
+                  });
+              }
            }
         });
 
@@ -43,6 +66,8 @@ export default function Dashboard() {
         });
       }
 
+      expiring.sort((a,b) => a.expirationDate - b.expirationDate);
+      setExpiringCards(expiring);
       setSummaries(summariesData);
       setLoading(false);
     }
@@ -57,6 +82,29 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto">
+      {expiringCards.length > 0 && (
+         <div className="mb-8 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl">
+            <div className="flex items-center gap-3 mb-3 text-orange-400 font-semibold">
+               <AlertTriangle size={20} />
+               <span>Expiring Soon</span>
+            </div>
+            <div className="flex flex-col gap-2">
+               {expiringCards.map((ec, i) => (
+                  <Link key={i} to={`/store/${ec.storeId}`} className="flex items-center justify-between p-3 rounded-xl bg-black/20 hover:bg-black/40 transition-colors border border-white/5">
+                     <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-white">{ec.storeName}</span>
+                        <span className="text-xs font-mono text-gray-400">{ec.cardCode}</span>
+                     </div>
+                     <div className="flex items-center gap-4 text-sm">
+                        <span className="text-gray-300 font-mono">{ec.currency} {ec.value.toFixed(2)}</span>
+                        <span className="text-orange-400 text-xs">Expires {format(new Date(ec.expirationDate), 'dd MMM yyyy')}</span>
+                     </div>
+                  </Link>
+               ))}
+            </div>
+         </div>
+      )}
+
       <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="font-h1 text-2xl font-semibold text-white mb-2">Overview</h1>
