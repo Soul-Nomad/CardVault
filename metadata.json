@@ -1,0 +1,6 @@
+{
+  "name": "CardVault - Gift Card Manager",
+  "description": "A dark minimalist web app to securely manage and track gift cards, including their balances and expiration dates.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

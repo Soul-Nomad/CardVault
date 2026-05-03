@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "store": {
+      "title": "Store",
+      "description": "Store configuration",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["name", "createdAt"]
+    },
+    "giftcard": {
+      "title": "Gift Card",
+      "description": "Gift card details",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "password": { "type": "string" },
+        "value": { "type": "number" },
+        "originalValue": { "type": "number" },
+        "currency": { "type": "string" },
+        "expirationDate": { "type": "timestamp" },
+        "used": { "type": "boolean" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["code", "value", "currency", "used", "createdAt"]
+    },
+    "history": {
+      "title": "History Event",
+      "description": "Log of actions performed on giftcards",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "giftcardCode": { "type": "string" },
+        "giftcardId": { "type": "string" },
+        "action": { "type": "string" },
+        "amount": { "type": "number" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["storeName", "giftcardCode", "giftcardId", "action", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "User profiles"
+    },
+    "users/{userId}/history/{historyId}": {
+      "schema": { "$ref": "#/entities/history" },
+      "description": "User's history log"
+    },
+    "users/{userId}/stores/{storeId}": {
+      "schema": { "$ref": "#/entities/store" },
+      "description": "User's stores"
+    },
+    "users/{userId}/stores/{storeId}/giftcards/{giftcardId}": {
+      "schema": { "$ref": "#/entities/giftcard" },
+      "description": "Store's gift cards"
+    }
+  }
+}

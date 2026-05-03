@@ -1,0 +1,132 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) 
+          && data.keys().size() == 2
+          && data.email is string
+          && data.email.size() <= 200
+          && data.createdAt == request.time;
+    }
+
+    function isValidUserUpdate(data) {
+      return data.keys().size() > 0 
+          && (data.keys().hasAny(['email']) ? (data.email is string && data.email.size() <= 200) : true)
+          && (data.keys().hasAny(['createdAt']) ? (data.createdAt == existing().createdAt) : true);
+    }
+    
+    function isValidStore(data) {
+      return data.keys().hasAll(['name', 'createdAt'])
+          && data.keys().size() == 2
+          && data.name is string
+          && data.name.size() <= 100
+          && data.createdAt == request.time;
+    }
+    
+    function isValidStoreUpdate(data) {
+      return data.keys().size() > 0 
+          && (data.keys().hasAny(['name']) ? (data.name is string && data.name.size() <= 100) : true)
+          && (data.keys().hasAny(['createdAt']) ? (data.createdAt == existing().createdAt) : true);
+    }
+
+    function isValidHistory(data) {
+      let hasAmount = data.keys().hasAll(['amount']);
+      let validSize = 5 + (hasAmount ? 1 : 0);
+      
+      return data.keys().hasAll(['storeName', 'giftcardCode', 'action', 'createdAt', 'giftcardId'])
+          && data.keys().size() == validSize
+          && data.storeName is string && data.storeName.size() <= 100
+          && data.giftcardCode is string && data.giftcardCode.size() <= 200
+          && data.giftcardId is string && data.giftcardId.size() <= 128
+          && data.action is string && data.action.size() <= 50
+          && data.createdAt == request.time
+          && (hasAmount ? (data.amount is number) : true);
+    }
+    
+    function isValidGiftcard(data) {
+      let hasPassword = data.keys().hasAll(['password']);
+      let hasExpiry = data.keys().hasAll(['expirationDate']);
+      let hasOriginalValue = data.keys().hasAll(['originalValue']);
+      let validSize = 5 + (hasPassword ? 1 : 0) + (hasExpiry ? 1 : 0) + (hasOriginalValue ? 1 : 0);
+
+      return data.keys().hasAll(['code', 'value', 'currency', 'used', 'createdAt'])
+          && data.keys().size() == validSize
+          && data.code is string && data.code.size() <= 200
+          && data.value is number
+          && data.currency is string && data.currency.size() <= 10
+          && data.used is bool
+          && data.createdAt == request.time
+          && (hasPassword ? (data.password is string && data.password.size() <= 100) : true)
+          && (hasExpiry ? (data.expirationDate is timestamp || data.expirationDate == null) : true)
+          && (hasOriginalValue ? (data.originalValue is number) : true);
+    }
+    
+    function isValidGiftcardUpdate(data) {
+      return data.keys().size() > 0 
+          && (data.keys().hasAny(['code']) ? (data.code is string && data.code.size() <= 200) : true)
+          && (data.keys().hasAny(['password']) ? (data.password is string && data.password.size() <= 100) : true)
+          && (data.keys().hasAny(['value']) ? (data.value is number) : true)
+          && (data.keys().hasAny(['originalValue']) ? (data.originalValue is number) : true)
+          && (data.keys().hasAny(['currency']) ? (data.currency is string && data.currency.size() <= 10) : true)
+          && (data.keys().hasAny(['expirationDate']) ? (data.expirationDate is timestamp || data.expirationDate == null) : true)
+          && (data.keys().hasAny(['used']) ? (data.used is bool) : true)
+          && (data.keys().hasAny(['createdAt']) ? (data.createdAt == existing().createdAt) : true);
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false; // never allow blanket list of users
+      allow create: if isSignedIn() && isValidId(userId) && isOwner(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidUserUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['email']);
+      allow delete: if false;
+
+      match /stores/{storeId} {
+        allow get: if isSignedIn() && isOwner(userId);
+        allow list: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() && isValidId(storeId) && isOwner(userId) && isValidStore(incoming());
+        allow update: if isSignedIn() && isOwner(userId) && isValidStoreUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name']);
+        allow delete: if isSignedIn() && isOwner(userId);
+
+        match /giftcards/{giftcardId} {
+          allow get: if isSignedIn() && isOwner(userId);
+          allow list: if isSignedIn() && isOwner(userId);
+          allow create: if isSignedIn() && isValidId(giftcardId) && isOwner(userId) && isValidGiftcard(incoming());
+          allow update: if isSignedIn() && isOwner(userId) && isValidGiftcardUpdate(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['code', 'password', 'value', 'originalValue', 'currency', 'expirationDate', 'used']);
+          allow delete: if isSignedIn() && isOwner(userId);
+        }
+      }
+
+      match /history/{historyId} {
+        allow get: if isSignedIn() && isOwner(userId);
+        allow list: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() && isValidId(historyId) && isOwner(userId) && isValidHistory(incoming());
+        allow update: if false;
+        allow delete: if isSignedIn() && isOwner(userId);
+      }
+    }
+  }
+}
