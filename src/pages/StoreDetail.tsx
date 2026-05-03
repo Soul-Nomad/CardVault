@@ -137,94 +137,109 @@ export default function StoreDetail() {
          </div>
       </div>
 
-      <div className="bg-[#1a1a1a]/40 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
-         <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-               <thead>
-                  <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-white/5">
-                      <th className="p-4 font-medium">Code</th>
-                      <th className="p-4 font-medium">Value</th>
-                      <th className="p-4 font-medium cursor-pointer hover:text-white">Expiry Date</th>
-                      <th className="p-4 font-medium">Status</th>
-                      <th className="p-4 font-medium text-right">Actions</th>
-                  </tr>
-               </thead>
-               <tbody className="text-sm divide-y divide-white/5">
-                  {cards.map(card => {
-                      const isExpired = card.expirationDate && card.expirationDate < Date.now();
-                      const status = card.used ? 'used' : isExpired ? 'expired' : 'active';
-                      
-                      return (
-                      <tr key={card.id} className={clsx("transition-colors group", 
-                          status === 'used' ? 'bg-white/[0.02] opacity-50 grayscale' : 
-                          status === 'expired' ? 'bg-red-500/5 opacity-80' : 'hover:bg-white/5'
-                      )}>
-                         <td className="p-4">
-                             <div className="flex items-center gap-3">
-                                <span className={clsx("font-mono", status === 'used' ? "text-gray-400 line-through" : "text-gray-300")}>{card.code}</span>
-                                {status !== 'used' && (
-                                   <button className="text-gray-400 hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100" title="Copy Code">
-                                      <Copy size={16} />
-                                   </button>
-                                )}
-                             </div>
-                             {card.password && (
-                                 <span className="text-[11px] text-gray-500 font-mono block mt-1">PWD: {card.password}</span>
-                             )}
-                         </td>
-                         <td className={clsx("p-4", status === 'used' ? "text-gray-400 line-through" : "text-white")}>
-                            {card.currency} {card.value.toFixed(2).replace('.', ',')}
-                            {card.originalValue && card.originalValue > card.value && !card.used && (
-                                <span className="block text-[10px] text-gray-500 line-through mt-0.5">was {card.currency} {card.originalValue.toFixed(2).replace('.', ',')}</span>
-                            )}
-                         </td>
-                         <td className={clsx("p-4", isExpired && !card.used ? "text-red-400" : "text-gray-400")}>
-                            {card.expirationDate ? format(new Date(card.expirationDate), 'dd/MM/yyyy') : 'Não expira'}
-                         </td>
-                         <td className="p-4">
-                            {status === 'active' && card.value < (card.originalValue || card.value) && (
-                                <span className="text-orange-400 px-2 py-1 rounded bg-orange-500/10 text-[10px] font-bold uppercase tracking-wider mr-2">
-                                   Partial
-                                </span>
-                            )}
-                            {status === 'active' && card.value >= (card.originalValue || card.value) && (
-                                <span className="text-green-500 px-2 py-1 rounded bg-green-500/10 text-[10px] font-bold uppercase tracking-wider mr-2">
-                                   Active
-                                </span>
-                            )}
-                            {status === 'used' && (
-                                <span className="text-gray-400 px-2 py-1 rounded bg-gray-500/10 text-[10px] font-bold uppercase tracking-wider mr-2">
-                                   Used
-                                </span>
-                            )}
-                            {status === 'expired' && (
-                                <span className="text-red-400 px-2 py-1 rounded bg-red-500/10 text-[10px] font-bold uppercase tracking-wider mr-2">
-                                   Expired
-                                </span>
-                            )}
-                         </td>
-                         <td className="p-4 text-right flex items-center justify-end gap-3">
-                            {status === 'active' && (
-                                <button onClick={() => handleMarkUsed(card)} className="text-blue-500 hover:text-blue-400 font-medium text-sm">
-                                  Use Card
-                                </button>
-                            )}
-                            <button onClick={() => handleDelete(card)} className="text-gray-500 hover:text-red-400 transition-colors p-1" title="Delete Card">
-                               <Trash2 size={16} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+         {cards.map(card => {
+            const isExpired = card.expirationDate && card.expirationDate < Date.now();
+            const status = card.used ? 'used' : isExpired ? 'expired' : 'active';
+            
+            return (
+               <div key={card.id} className={clsx(
+                  "relative p-5 rounded-2xl border transition-all duration-200 group flex flex-col gap-4",
+                  status === 'used' ? 'bg-[#1a1a1a]/20 border-white/5 opacity-60 grayscale' : 
+                  status === 'expired' ? 'bg-red-500/5 border-red-500/10 opacity-80' : 
+                  'bg-[#1a1a1a]/60 border-white/10 hover:bg-[#1a1a1a]/80 hover:border-white/20 hover:shadow-xl hover:shadow-black/20 backdrop-blur-sm'
+               )}>
+                  {/* Status Badge */}
+                  <div className="absolute top-4 right-4 flex gap-2">
+                     {status === 'active' && card.value < (card.originalValue || card.value) && (
+                         <span className="text-orange-400 px-2.5 py-1 rounded-full bg-orange-500/10 text-[10px] font-bold uppercase tracking-wider">
+                            Partial
+                         </span>
+                     )}
+                     {status === 'active' && card.value >= (card.originalValue || card.value) && (
+                         <span className="text-green-500 px-2.5 py-1 rounded-full bg-green-500/10 text-[10px] font-bold uppercase tracking-wider">
+                            Active
+                         </span>
+                     )}
+                     {status === 'used' && (
+                         <span className="text-gray-400 px-2.5 py-1 rounded-full bg-gray-500/10 text-[10px] font-bold uppercase tracking-wider">
+                            Used
+                         </span>
+                     )}
+                     {status === 'expired' && (
+                         <span className="text-red-400 px-2.5 py-1 rounded-full bg-red-500/10 text-[10px] font-bold uppercase tracking-wider">
+                            Expired
+                         </span>
+                     )}
+                  </div>
+
+                  {/* Card Values */}
+                  <div className="mt-2">
+                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Balance</p>
+                     <p className={clsx("font-display text-3xl font-bold tracking-tight", status === 'used' ? "text-gray-400 line-through" : "text-white")}>
+                        <span className="text-xl text-gray-500 font-medium mr-1">{card.currency}</span>
+                        {card.value.toFixed(2).replace('.', ',')}
+                     </p>
+                     {card.originalValue && card.originalValue > card.value && !card.used && (
+                         <p className="text-xs text-gray-400 mt-1">
+                            was {card.currency} {card.originalValue.toFixed(2).replace('.', ',')}
+                         </p>
+                     )}
+                  </div>
+
+                  {/* Card Code */}
+                  <div className="bg-black/30 rounded-xl p-3 border border-white/5 relative group/code mt-auto">
+                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-1">Gift Card Code</p>
+                     <div className="flex justify-between items-center">
+                        <span className={clsx("font-mono text-sm tracking-widest", status === 'used' ? "text-gray-500 line-through" : "text-blue-100")}>
+                           {card.code}
+                        </span>
+                        {status !== 'used' && (
+                           <button className="text-gray-400 hover:text-white transition-colors p-2 -mr-2 -my-2 rounded-lg" title="Copy Code">
+                              <Copy size={16} />
+                           </button>
+                        )}
+                     </div>
+                     {card.password && (
+                        <div className="mt-2 pt-2 border-t border-white/5 flex justify-between items-center">
+                           <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">PIN / Password</span>
+                           <span className="text-xs font-mono text-gray-400">{card.password}</span>
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Footer Stats & Actions */}
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-2">
+                     <div className="text-xs">
+                        <span className="text-gray-500 block mb-0.5">Expires</span>
+                        <span className={clsx("font-medium", isExpired && !card.used ? "text-red-400" : "text-gray-300")}>
+                           {card.expirationDate ? format(new Date(card.expirationDate), 'dd MMM yyyy') : 'No expiry'}
+                        </span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                        {status === 'active' && (
+                            <button onClick={() => handleMarkUsed(card)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 font-semibold text-[13px] px-3 py-1.5 rounded-lg transition-colors">
+                              Use Card
                             </button>
-                         </td>
-                      </tr>
-                    )
-                  })}
-               </tbody>
-            </table>
-            {cards.length === 0 && (
-                <div className="p-6 text-center text-gray-500 border-t border-white/5">
-                    No gift cards added yet.
-                </div>
-            )}
-         </div>
+                        )}
+                        <button onClick={() => handleDelete(card)} className="text-gray-500/50 hover:text-red-400 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg" title="Delete Card">
+                           <Trash2 size={16} />
+                        </button>
+                     </div>
+                  </div>
+               </div>
+            )
+         })}
       </div>
+      
+      {cards.length === 0 && (
+         <div className="p-8 text-center bg-[#1a1a1a]/40 backdrop-blur-sm border border-white/10 rounded-2xl flex flex-col items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+               <ShoppingCart className="w-8 h-8 text-gray-500" />
+            </div>
+            <p className="text-gray-400 font-medium">No gift cards added to this store yet.</p>
+         </div>
+      )}
 
       {/* Use Card Modal */}
       {useModalOpen && cardToUse && (

@@ -57,27 +57,27 @@ export default function History() {
                 }
 
                 return (
-                  <div key={event.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-white/5 transition-colors group">
+                  <div key={event.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/5 transition-colors group gap-3">
                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <div className="w-10 h-10 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
                             {icon}
                         </div>
-                        <div>
-                           <div className="flex items-center gap-2 mb-1">
+                        <div className="flex-1 min-w-0">
+                           <div className="flex flex-wrap items-center gap-2 mb-1">
                                <span className={clsx("font-semibold text-sm", colorClass)}>{actionText}</span>
-                               <span className="text-gray-500 text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10">{event.storeName}</span>
+                               <span className="text-gray-500 text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 truncate max-w-[120px] sm:max-w-none">{event.storeName}</span>
                            </div>
-                           <div className="text-gray-400 text-sm font-mono">{event.giftcardCode}</div>
+                           <div className="text-gray-400 text-xs sm:text-sm font-mono truncate">{event.giftcardCode}</div>
                         </div>
                      </div>
-                     <div className="text-right">
-                         <div className="text-white font-mono font-medium">
+                     <div className="flex sm:flex-col justify-between items-end sm:items-end w-full sm:w-auto ml-14 sm:ml-0">
+                         <div className="text-white font-mono font-medium text-sm sm:text-base">
                             {event.amount ? (
                                event.action === 'added' ? `+ R$ ${event.amount.toFixed(2).replace('.', ',')}` :
                                `- R$ ${event.amount.toFixed(2).replace('.', ',')}`
                             ) : '-'}
                          </div>
-                         <div className="text-xs text-gray-500 mt-1 uppercase tracking-widest">{format(new Date(event.createdAt), 'dd MMM yyyy, HH:mm')}</div>
+                         <div className="text-[10px] sm:text-xs text-gray-500 mt-1 uppercase tracking-widest">{format(new Date(event.createdAt), 'dd MMM yyyy, HH:mm')}</div>
                      </div>
                   </div>
                 )
